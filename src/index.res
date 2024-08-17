@@ -38,12 +38,12 @@ module Syntax = {
   let all = [Lispy, Python, JavaScript, Scala, PseudoCode]
 }
 
-let stringOfSrcloc = (srcloc: SExpression.SrcLoc.t): string => {
+let stringOfSrcloc = (srcloc: SExpression.sourcePoint): string => {
   let {ln, ch} = srcloc
   `${ln |> Belt.Int.toString}-${ch |> Belt.Int.toString}`
 }
 
-let stringOfSrcrange = (srcrange: SExpression.srcrange): string => {
+let stringOfSrcrange = (srcrange: SExpression.sourceLocation): string => {
   let {begin, end} = srcrange
   `srcrange-${begin |> stringOfSrcloc}-${end |> stringOfSrcloc}`
 }
@@ -80,7 +80,7 @@ and reactOfAnnotatedPrint = ({it, ann}) => {
     }
   }
   switch it {
-  | SMoL.Print.Plain("") => <> </>
+  | Plain("") => <> </>
   | Group(list{}) => <> </>
   | Plain(s) => ann(React.string(s))
   | Group(es) => ann(React.array(es |> Belt.List.toArray |> Array.map(reactOfAnnotatedPrint)))
