@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "res:build": "rescript",
-    "res:dev": "rescript build -w",
+    "rescript": "rescript build -w",
     "webpack": "npx webpack --mode production"
   },
   "keywords": [

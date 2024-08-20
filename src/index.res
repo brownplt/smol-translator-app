@@ -87,22 +87,87 @@ and reactOfAnnotatedPrint = ({it, ann}) => {
   }
 }
 
+module Kind = {
+  type t =
+    | Output
+    | Term
+    | Program
+  let toString = t => {
+    switch t {
+    | Output => "Output"
+    | Term => "Term"
+    | Program => "Program"
+    }
+  }
+  let fromString = t => {
+    switch t {
+    | "Output" => Output
+    | "Term" => Term
+    | "Program" => Program
+    | _ => Program
+    }
+  }
+  let all = [Output, Term, Program]
+}
+
 module App = {
   @react.component
   let make = () => {
     let (source, setSource) = React.useState(_ => "")
-    let print = targetSyntax => {
-      switch targetSyntax {
-      | Syntax.Lispy => SMoL.SMoLPrinter.printProgramFull(true)
-      | Python => SMoL.PYPrinter.printProgramFull(true)
-      | JavaScript => SMoL.JSPrinter.printProgramFull(true)
-      | Scala => SMoL.SCPrinter.printProgramFull(true)
-      | PseudoCode => SMoL.PCPrinter.printProgramFull(true)
+    let (kind, setKind) = React.useState(_ => Kind.Program)
+    let tr = (kind, targetSyntax, source): React.element => {
+      switch switch kind {
+      | Kind.Term =>
+        switch targetSyntax {
+        | Syntax.Lispy => source
+        | Python => SMoL.PYTranslator.translateStandAloneTerm(source)
+        | JavaScript => SMoL.JSTranslator.translateStandAloneTerm(source)
+        | Scala => SMoL.SCTranslator.translateStandAloneTerm(source)
+        | PseudoCode => SMoL.PCTranslator.translateStandAloneTerm(source)
+        } |> React.string
+      | Kind.Output =>
+        switch targetSyntax {
+        | Syntax.Lispy => source
+        | Python => SMoL.PYTranslator.translateOutput(source)
+        | JavaScript => SMoL.JSTranslator.translateOutput(source)
+        | Scala => SMoL.SCTranslator.translateOutput(source)
+        | PseudoCode => SMoL.PCTranslator.translateOutput(source)
+        } |> React.string
+      | Program =>
+        switch targetSyntax {
+        | Syntax.Lispy => source |> React.string
+        | Python => SMoL.PYTranslator.translateProgramFull(true, source).ann.print |> reactOfPrint
+        | JavaScript =>
+          SMoL.JSTranslator.translateProgramFull(true, source).ann.print |> reactOfPrint
+        | Scala => SMoL.SCTranslator.translateProgramFull(true, source).ann.print |> reactOfPrint
+        | PseudoCode =>
+          SMoL.PCTranslator.translateProgramFull(true, source).ann.print |> reactOfPrint
+        }
+      } {
+      | exception SMoL.SMoLTranslateError(err) =>
+        <mark> {SMoL.TranslateError.toString(err) |> React.string} </mark>
+      | it => it
       }
     }
     <main>
       <section>
-        <h2> {React.string("Source Program:")} </h2>
+        <h2>
+          {React.string("Source ")}
+          <select
+            onChange={evt => {
+              let k: string = ReactEvent.Form.currentTarget(evt)["value"]
+              let k = Kind.fromString(k)
+              setKind(_ => k)
+            }}>
+            {React.array(
+              Kind.all |> Array.map(k => {
+                let value = k |> Kind.toString
+                <option value selected={k == kind}> {React.string(value)} </option>
+              }),
+            )}
+          </select>
+          {React.string(":")}
+        </h2>
         <textarea
           name="sourceProgram"
           value={source}
@@ -115,23 +180,22 @@ module App = {
         />
       </section>
       <section id={"translations"}>
-        <h2> {React.string("Translations")} </h2>
+        <h2>
+          {React.string(`Translated `)}
+          <u> {React.string(kind |> Kind.toString)} </u>
+        </h2>
         <div>
-          {switch SMoL.Parser.parseProgram(source) {
-          | exception SMoL.SMoLParseError(err) => React.string(SMoL.ParseError.toString(err))
-          | source =>
-            React.array(
-              Syntax.all |> Array.mapi((i, s) => {
-                <article key={Js.Int.toString(i)}>
-                  <h3> {React.string(Syntax.toString(s))} </h3>
-                  {switch print(s)(source) {
-                  | exception SMoL.SMoLPrintError(err) => React.string(err)
-                  | target => <pre> {target.ann.print |> reactOfPrint} </pre>
-                  }}
-                </article>
-              }),
-            )
-          }}
+          {React.array(
+            Syntax.all |> Array.mapi((i, syntax) => {
+              <article key={Js.Int.toString(i)}>
+                <h3> {React.string(Syntax.toString(syntax))} </h3>
+                {switch tr(kind, syntax, source) {
+                | exception SMoL.SMoLPrintError(err) => React.string(err)
+                | target => <pre> {target} </pre>
+                }}
+              </article>
+            }),
+          )}
         </div>
       </section>
     </main>
