@@ -7,7 +7,6 @@ Let this module does all the bootstrap.
 %%raw("import './index.css'")
 
 @module("./highlight") external highlight: string => unit = "highlight"
-@module("./highlight") external unhighlight: string => unit = "unhighlight"
 
 module Syntax = {
   type t =
@@ -48,43 +47,34 @@ let stringOfSrcrange = (srcrange: SExpression.sourceLocation): string => {
   `srcrange-${begin |> stringOfSrcloc}-${end |> stringOfSrcloc}`
 }
 
-let rec reactOfPrint = (p: SMoL.Print.t): React.element => {
-  switch p {
-  | Plain(s) => React.string(s)
-  | Group(es) => React.array(es |> Belt.List.toArray |> Array.map(reactOfAnnotatedPrint))
-  }
-}
-and reactOfAnnotatedPrint = ({it, ann}) => {
-  let ann = switch ann {
-  | None => it => it
-  | Some(ann) =>
-    it => {
-      let className = stringOfSrcrange(ann)
-      <span
-        className
-        // onMouseMove={event => {
-        //   highlight(className)
-        //   ReactEvent.Mouse.preventDefault(event)
-        // }}
-        onMouseEnter={event => {
-          highlight(className)
-          ReactEvent.Mouse.preventDefault(event)
-        }}
-        // onMouseLeave={event => {
-        //   unhighlight(className)
-        //   ReactEvent.Mouse.preventDefault(event)
-        // }}
-      >
-        {it}
-      </span>
+let reactOfPrint = (p: SMoL.print<'a>, sourceMap): React.element => {
+  let rec reactOfAnnotatedPrint = ({it, ann}: SMoL.print<_>) => {
+    let ann = switch ann {
+    | None => it => it
+    | Some(ann) =>
+      it => {
+        let className = stringOfSrcrange(ann)
+        <span
+          title={Belt.Map.get(sourceMap, ann)
+          ->Belt.Option.map(SExpression.SourceLocation.toString)
+          ->Belt.Option.getWithDefault("")}
+          className
+          onMouseEnter={event => {
+            highlight(className)
+            ReactEvent.Mouse.preventDefault(event)
+          }}>
+          {it}
+        </span>
+      }
+    }
+    switch it {
+    | Plain("") => <> </>
+    | Group(list{}) => <> </>
+    | Plain(s) => ann(React.string(s))
+    | Group(es) => ann(React.array(es |> Belt.List.toArray |> Array.map(reactOfAnnotatedPrint)))
     }
   }
-  switch it {
-  | Plain("") => <> </>
-  | Group(list{}) => <> </>
-  | Plain(s) => ann(React.string(s))
-  | Group(es) => ann(React.array(es |> Belt.List.toArray |> Array.map(reactOfAnnotatedPrint)))
-  }
+  reactOfAnnotatedPrint(p)
 }
 
 module Kind = {
@@ -109,6 +99,11 @@ module Kind = {
   }
   let all = [Output, Term, Program]
 }
+
+module SourceLocationCmp = Belt.Id.MakeComparable({
+  type t = SExpression.sourceLocation
+  let cmp = (a, b) => Pervasives.compare(a, b)
+})
 
 module App = {
   @react.component
@@ -136,12 +131,26 @@ module App = {
       | Program =>
         switch targetSyntax {
         | Syntax.Lispy => source |> React.string
-        | Python => SMoL.PYTranslator.translateProgramFull(true, source).ann.print |> reactOfPrint
-        | JavaScript =>
-          SMoL.JSTranslator.translateProgramFull(true, source).ann.print |> reactOfPrint
-        | Scala => SMoL.SCTranslator.translateProgramFull(true, source).ann.print |> reactOfPrint
-        | PseudoCode =>
-          SMoL.PCTranslator.translateProgramFull(true, source).ann.print |> reactOfPrint
+        | Python => {
+            let print = SMoL.getPrint(SMoL.PYTranslator.translateProgramFull(true, source))
+            let sourceMap = SMoL.Print.toSourceMap(print, module(SourceLocationCmp))
+            reactOfPrint(print, sourceMap)
+          }
+        | JavaScript => {
+            let print = SMoL.getPrint(SMoL.JSTranslator.translateProgramFull(true, source))
+            let sourceMap = SMoL.Print.toSourceMap(print, module(SourceLocationCmp))
+            reactOfPrint(print, sourceMap)
+          }
+        | Scala => {
+            let print = SMoL.getPrint(SMoL.SCTranslator.translateProgramFull(true, source))
+            let sourceMap = SMoL.Print.toSourceMap(print, module(SourceLocationCmp))
+            reactOfPrint(print, sourceMap)
+          }
+        | PseudoCode => {
+            let print = SMoL.getPrint(SMoL.PCTranslator.translateProgramFull(true, source))
+            let sourceMap = SMoL.Print.toSourceMap(print, module(SourceLocationCmp))
+            reactOfPrint(print, sourceMap)
+          }
         }
       } {
       | exception SMoL.SMoLTranslateError(err) =>
