@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "rescript": "rescript build -w",
     "webpack": "npx webpack --mode production",
-    "release": "rm -r ../smol-tutor/docs/smol-translator && cp -r ./docs ../smol-tutor/docs/smol-translator"
+    "publish": "rm -r ../smol-tutor/docs/smol-translator && cp -r ./docs ../smol-tutor/docs/smol-translator"
   },
   "keywords": [
     "rescript"
