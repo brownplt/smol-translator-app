@@ -47,13 +47,19 @@ let stringOfSrcrange = (srcrange: SExpression.sourceLocation): string => {
   `srcrange-${begin |> stringOfSrcloc}-${end |> stringOfSrcloc}`
 }
 
-let reactOfPrint = (p: SMoL.print<'a>, sourceMap): React.element => {
-  let rec reactOfAnnotatedPrint = ({it, ann}: SMoL.print<_>) => {
+
+let stringOfKindedSrcrange = (srcrange: SMoL.kindedSourceLocation): string => {
+  let {nodeKind, sourceLocation} = srcrange
+  `${SMoL.NodeKind.toString(nodeKind)}-${stringOfSrcrange(sourceLocation)}`
+}
+
+let reactOfPrint = (p: SMoL.print<SMoL.kindedSourceLocation>, sourceMap): React.element => {
+  let rec reactOfAnnotatedPrint = ({it, ann}: SMoL.print<SMoL.kindedSourceLocation>) => {
     let ann = switch ann {
     | None => it => it
     | Some(ann) =>
       it => {
-        let className = stringOfSrcrange(ann)
+        let className = stringOfKindedSrcrange(ann)
         <span
           title={Belt.Map.get(sourceMap, ann)
           ->Belt.Option.map(SExpression.SourceLocation.toString)
@@ -101,7 +107,7 @@ module Kind = {
 }
 
 module SourceLocationCmp = Belt.Id.MakeComparable({
-  type t = SExpression.sourceLocation
+  type t = SMoL.kindedSourceLocation
   let cmp = (a, b) => Pervasives.compare(a, b)
 })
 
@@ -132,22 +138,22 @@ module App = {
         switch targetSyntax {
         | Syntax.Lispy => source |> React.string
         | Python => {
-            let print = SMoL.getPrint(SMoL.PYTranslator.translateProgramFull(true, source))
+            let print = SMoL.getProgramPrint(SMoL.PYTranslator.translateProgramFull(true, source))
             let sourceMap = SMoL.Print.toSourceMap(print, module(SourceLocationCmp))
             reactOfPrint(print, sourceMap)
           }
         | JavaScript => {
-            let print = SMoL.getPrint(SMoL.JSTranslator.translateProgramFull(true, source))
+            let print = SMoL.getProgramPrint(SMoL.JSTranslator.translateProgramFull(true, source))
             let sourceMap = SMoL.Print.toSourceMap(print, module(SourceLocationCmp))
             reactOfPrint(print, sourceMap)
           }
         | Scala => {
-            let print = SMoL.getPrint(SMoL.SCTranslator.translateProgramFull(true, source))
+            let print = SMoL.getProgramPrint(SMoL.SCTranslator.translateProgramFull(true, source))
             let sourceMap = SMoL.Print.toSourceMap(print, module(SourceLocationCmp))
             reactOfPrint(print, sourceMap)
           }
         | PseudoCode => {
-            let print = SMoL.getPrint(SMoL.PCTranslator.translateProgramFull(true, source))
+            let print = SMoL.getProgramPrint(SMoL.PCTranslator.translateProgramFull(true, source))
             let sourceMap = SMoL.Print.toSourceMap(print, module(SourceLocationCmp))
             reactOfPrint(print, sourceMap)
           }
