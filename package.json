@@ -17,13 +17,13 @@
   "dependencies": {
     "@brownplt/s-expression": "github:brownplt/s-expression",
     "@brownplt/smol-translator": "github:brownplt/smol-translator",
-    "@rescript/core": "^1.5.2",
+    "@rescript/core": "^1.6.0",
     "@rescript/react": "^0.13.0",
     "install": "^0.13.0",
     "npm": "^10.8.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "rescript": "^11.1.3"
+    "rescript": "^11.1.4"
   },
   "devDependencies": {
     "css-loader": "^7.1.2",
