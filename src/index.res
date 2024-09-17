@@ -6,7 +6,9 @@ Let this module does all the bootstrap.
 
 %%raw("import './index.css'")
 
-@module("./highlight") external highlight: string => unit = "highlight"
+@module("./highlight.js") external highlight: string => unit = "highlight"
+
+open SMoL
 
 module Syntax = {
   type t =
@@ -37,33 +39,17 @@ module Syntax = {
   let all = [Lispy, Python, JavaScript, Scala, PseudoCode]
 }
 
-let stringOfSrcloc = (srcloc: SExpression.sourcePoint): string => {
-  let {ln, ch} = srcloc
-  `${ln |> Belt.Int.toString}-${ch |> Belt.Int.toString}`
-}
-
-let stringOfSrcrange = (srcrange: SExpression.sourceLocation): string => {
-  let {begin, end} = srcrange
-  `srcrange-${begin |> stringOfSrcloc}-${end |> stringOfSrcloc}`
-}
-
-
-let stringOfKindedSrcrange = (srcrange: SMoL.kindedSourceLocation): string => {
-  let {nodeKind, sourceLocation} = srcrange
-  `${SMoL.NodeKind.toString(nodeKind)}-${stringOfSrcrange(sourceLocation)}`
-}
-
-let reactOfPrint = (p: SMoL.print<SMoL.kindedSourceLocation>, sourceMap): React.element => {
+let reactOfPrint = (p: SMoL.print<SMoL.kindedSourceLocation>, sourceMap: Map.t<string, SExpression.sourceLocation>): React.element => {
   let rec reactOfAnnotatedPrint = ({it, ann}: SMoL.print<SMoL.kindedSourceLocation>) => {
     let ann = switch ann {
     | None => it => it
     | Some(ann) =>
       it => {
-        let className = stringOfKindedSrcrange(ann)
+        let className = KindedSourceLocation.toString(ann)
         <span
-          title={Belt.Map.get(sourceMap, ann)
-          ->Belt.Option.map(SExpression.SourceLocation.toString)
-          ->Belt.Option.getWithDefault("")}
+          title={Map.get(sourceMap, className)
+          ->Option.map(SExpression.SourceLocation.toString)
+          ->Option.getOr("")}
           className
           onMouseEnter={event => {
             highlight(className)
@@ -77,7 +63,7 @@ let reactOfPrint = (p: SMoL.print<SMoL.kindedSourceLocation>, sourceMap): React.
     | Plain("") => <> </>
     | Group(list{}) => <> </>
     | Plain(s) => ann(React.string(s))
-    | Group(es) => ann(React.array(es |> Belt.List.toArray |> Array.map(reactOfAnnotatedPrint)))
+    | Group(es) => ann(React.array(es -> List.toArray -> Array.map(reactOfAnnotatedPrint)))
     }
   }
   reactOfAnnotatedPrint(p)
@@ -106,11 +92,6 @@ module Kind = {
   let all = [Output, Term, Program]
 }
 
-module SourceLocationCmp = Belt.Id.MakeComparable({
-  type t = SMoL.kindedSourceLocation
-  let cmp = (a, b) => Pervasives.compare(a, b)
-})
-
 module App = {
   @react.component
   let make = () => {
@@ -138,23 +119,23 @@ module App = {
         switch targetSyntax {
         | Syntax.Lispy => source |> React.string
         | Python => {
-            let print = SMoL.getProgramPrint(SMoL.PYTranslator.translateProgramFull(true, source))
-            let sourceMap = SMoL.Print.toSourceMap(print, module(SourceLocationCmp))
+            let print = (SMoL.PYTranslator.translateProgramFull(true, source)).ann.print
+            let sourceMap = SMoL.Print.toSourceMap(print, KindedSourceLocation.toString)
             reactOfPrint(print, sourceMap)
           }
         | JavaScript => {
-            let print = SMoL.getProgramPrint(SMoL.JSTranslator.translateProgramFull(true, source))
-            let sourceMap = SMoL.Print.toSourceMap(print, module(SourceLocationCmp))
+            let print = (SMoL.JSTranslator.translateProgramFull(true, source)).ann.print
+            let sourceMap = SMoL.Print.toSourceMap(print, KindedSourceLocation.toString)
             reactOfPrint(print, sourceMap)
           }
         | Scala => {
-            let print = SMoL.getProgramPrint(SMoL.SCTranslator.translateProgramFull(true, source))
-            let sourceMap = SMoL.Print.toSourceMap(print, module(SourceLocationCmp))
+            let print = (SMoL.SCTranslator.translateProgramFull(true, source)).ann.print
+            let sourceMap = SMoL.Print.toSourceMap(print, KindedSourceLocation.toString)
             reactOfPrint(print, sourceMap)
           }
         | PseudoCode => {
-            let print = SMoL.getProgramPrint(SMoL.PCTranslator.translateProgramFull(true, source))
-            let sourceMap = SMoL.Print.toSourceMap(print, module(SourceLocationCmp))
+            let print = (SMoL.PCTranslator.translateProgramFull(true, source)).ann.print
+            let sourceMap = SMoL.Print.toSourceMap(print, KindedSourceLocation.toString)
             reactOfPrint(print, sourceMap)
           }
         }
@@ -175,8 +156,8 @@ module App = {
               setKind(_ => k)
             }}>
             {React.array(
-              Kind.all |> Array.map(k => {
-                let value = k |> Kind.toString
+              Kind.all -> Array.map(k => {
+                let value = k -> Kind.toString
                 <option value selected={k == kind}> {React.string(value)} </option>
               }),
             )}
@@ -201,7 +182,7 @@ module App = {
         </h2>
         <div>
           {React.array(
-            Syntax.all |> Array.mapi((i, syntax) => {
+            Syntax.all -> Array.mapWithIndex((syntax, i) => {
               <article key={Js.Int.toString(i)}>
                 <h3> {React.string(Syntax.toString(syntax))} </h3>
                 {switch tr(kind, syntax, source) {
