@@ -61,12 +61,16 @@ var Syntax = {
   all: all
 };
 
+function toString$1(ksl) {
+  return SMoL.KindedSourceLocation.toString(ksl).replaceAll(":", "_");
+}
+
 function reactOfPrint(p, sourceMap) {
   var reactOfAnnotatedPrint = function (param) {
     var ann = param.ann;
     var it = param.it;
     var ann$1 = ann !== undefined ? (function (it) {
-          var className = SMoL.KindedSourceLocation.toString(ann);
+          var className = toString$1(ann);
           return React.createElement("span", {
                       className: className,
                       title: Core__Option.getOr(Core__Option.map(sourceMap.get(className), SExpression.SourceLocation.toString), ""),
@@ -96,7 +100,7 @@ function reactOfPrint(p, sourceMap) {
   return reactOfAnnotatedPrint(p);
 }
 
-function toString$1(t) {
+function toString$2(t) {
   switch (t) {
     case "Output" :
         return "Output";
@@ -126,7 +130,7 @@ var all$1 = [
 ];
 
 var Kind = {
-  toString: toString$1,
+  toString: toString$2,
   fromString: fromString$1,
   all: all$1
 };
@@ -179,19 +183,19 @@ function Index$App(props) {
                   return source;
               case "Python" :
                   var print = SMoL.PYTranslator.translateProgramFull(true, source).ann.print;
-                  var sourceMap = SMoL.Print.toSourceMap(print, SMoL.KindedSourceLocation.toString);
+                  var sourceMap = SMoL.Print.toSourceMap(print, toString$1);
                   return reactOfPrint(print, sourceMap);
               case "JavaScript" :
                   var print$1 = SMoL.JSTranslator.translateProgramFull(true, source).ann.print;
-                  var sourceMap$1 = SMoL.Print.toSourceMap(print$1, SMoL.KindedSourceLocation.toString);
+                  var sourceMap$1 = SMoL.Print.toSourceMap(print$1, toString$1);
                   return reactOfPrint(print$1, sourceMap$1);
               case "Scala" :
                   var print$2 = SMoL.SCTranslator.translateProgramFull(true, source).ann.print;
-                  var sourceMap$2 = SMoL.Print.toSourceMap(print$2, SMoL.KindedSourceLocation.toString);
+                  var sourceMap$2 = SMoL.Print.toSourceMap(print$2, toString$1);
                   return reactOfPrint(print$2, sourceMap$2);
               case "PseudoCode" :
                   var print$3 = SMoL.PCTranslator.translateProgramFull(true, source).ann.print;
-                  var sourceMap$3 = SMoL.Print.toSourceMap(print$3, SMoL.KindedSourceLocation.toString);
+                  var sourceMap$3 = SMoL.Print.toSourceMap(print$3, toString$1);
                   return reactOfPrint(print$3, sourceMap$3);
               
             }
@@ -215,7 +219,7 @@ function Index$App(props) {
                                   });
                             })
                         }, all$1.map(function (k) {
-                              var value = toString$1(k);
+                              var value = toString$2(k);
                               return React.createElement("option", {
                                           selected: k === kind,
                                           value: value
@@ -233,7 +237,7 @@ function Index$App(props) {
                         })
                     })), React.createElement("section", {
                   id: "translations"
-                }, React.createElement("h2", undefined, "Translated ", React.createElement("u", undefined, toString$1(kind))), React.createElement("div", undefined, all.map(function (syntax, i) {
+                }, React.createElement("h2", undefined, "Translated ", React.createElement("u", undefined, toString$2(kind))), React.createElement("div", undefined, all.map(function (syntax, i) {
                           var tmp;
                           var exit = 0;
                           var target;
@@ -272,6 +276,7 @@ if (!(rootElement == null)) {
 export {
   highlight ,
   Syntax ,
+  toString$1 as toString,
   reactOfPrint ,
   Kind ,
   App ,

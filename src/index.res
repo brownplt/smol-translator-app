@@ -39,13 +39,19 @@ module Syntax = {
   let all = [Lispy, Python, JavaScript, Scala, PseudoCode]
 }
 
+let toString = (ksl) => {
+  ksl
+  -> KindedSourceLocation.toString
+  -> String.replaceAll(":", "_")
+}
+
 let reactOfPrint = (p: SMoL.print<SMoL.kindedSourceLocation>, sourceMap: Map.t<string, SExpression.sourceLocation>): React.element => {
   let rec reactOfAnnotatedPrint = ({it, ann}: SMoL.print<SMoL.kindedSourceLocation>) => {
     let ann = switch ann {
     | None => it => it
     | Some(ann) =>
       it => {
-        let className = KindedSourceLocation.toString(ann)
+        let className = toString(ann)
         <span
           title={Map.get(sourceMap, className)
           ->Option.map(SExpression.SourceLocation.toString)
@@ -120,22 +126,22 @@ module App = {
         | Syntax.Lispy => source |> React.string
         | Python => {
             let print = (SMoL.PYTranslator.translateProgramFull(true, source)).ann.print
-            let sourceMap = SMoL.Print.toSourceMap(print, KindedSourceLocation.toString)
+            let sourceMap = SMoL.Print.toSourceMap(print, toString)
             reactOfPrint(print, sourceMap)
           }
         | JavaScript => {
             let print = (SMoL.JSTranslator.translateProgramFull(true, source)).ann.print
-            let sourceMap = SMoL.Print.toSourceMap(print, KindedSourceLocation.toString)
+            let sourceMap = SMoL.Print.toSourceMap(print, toString)
             reactOfPrint(print, sourceMap)
           }
         | Scala => {
             let print = (SMoL.SCTranslator.translateProgramFull(true, source)).ann.print
-            let sourceMap = SMoL.Print.toSourceMap(print, KindedSourceLocation.toString)
+            let sourceMap = SMoL.Print.toSourceMap(print, toString)
             reactOfPrint(print, sourceMap)
           }
         | PseudoCode => {
             let print = (SMoL.PCTranslator.translateProgramFull(true, source)).ann.print
-            let sourceMap = SMoL.Print.toSourceMap(print, KindedSourceLocation.toString)
+            let sourceMap = SMoL.Print.toSourceMap(print, toString)
             reactOfPrint(print, sourceMap)
           }
         }
