@@ -154,13 +154,13 @@ function Index$App(props) {
               case "Lispy" :
                   return source;
               case "Python" :
-                  return SMoL.PYTranslator.translateOutput(source);
+                  return SMoL.PYTranslator.translateOutput(source, undefined);
               case "JavaScript" :
-                  return SMoL.JSTranslator.translateOutput(source);
+                  return SMoL.JSTranslator.translateOutput(source, undefined);
               case "Scala" :
-                  return SMoL.SCTranslator.translateOutput(source);
+                  return SMoL.SCTranslator.translateOutput(source, undefined);
               case "PseudoCode" :
-                  return SMoL.PCTranslator.translateOutput(source);
+                  return SMoL.PCTranslator.translateOutput(source, undefined);
               
             }
         case "Term" :
